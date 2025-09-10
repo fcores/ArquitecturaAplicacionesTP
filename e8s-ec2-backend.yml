@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: fastapi
-          image: ezequielfina/ticketpardo-backend:main
+          image: ezequielfina/ticketpardo-backend:kube
           imagePullPolicy: Always
           ports:
             - containerPort: 8000

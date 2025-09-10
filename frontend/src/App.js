@@ -8,6 +8,7 @@ import Newsletter from './components/Newsletter';
 import Footer from './components/Footer';
 import PurchaseModal from './components/PurchaseModal';
 import { AppProvider } from './context/AppContext';
+import Health from './components/Health';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
                 <Newsletter />
               </>
             } />
+            <Route path="/health" element={<Health />} />
           </Routes>
         </main>
         <Footer />

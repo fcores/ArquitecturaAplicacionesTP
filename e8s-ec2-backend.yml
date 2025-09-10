@@ -1,0 +1,162 @@
+# ----------------------------- 
+# Deployment 
+# ----------------------------- 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ticketpardo-backend
+  labels:
+    app: fastapi
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fastapi
+  template:
+    metadata:
+      labels:
+        app: fastapi
+    spec:
+      containers:
+        - name: fastapi
+          image: ezequielfina/ticketpardo-backend:main
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          # Health checks para mejor manejo en la nube
+          livenessProbe:
+            httpGet:
+              path: /health  # asegúrate de tener este endpoint
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          env:
+            - name: ENV
+              value: "production"
+
+---
+# ----------------------------- 
+# Service ClusterIP (para uso con Ingress)
+# ----------------------------- 
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticketpardo-backend-service
+  labels:
+    app: fastapi
+spec:
+  type: ClusterIP  # Cambiado a ClusterIP para uso con Ingress
+  selector:
+    app: fastapi
+  ports:
+    - protocol: TCP
+      port: 8000      # puerto del Service dentro del cluster
+      targetPort: 8000 # puerto del contenedor
+      name: http
+
+---
+# ----------------------------- 
+# Ingress Controller Configuration
+# ----------------------------- 
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fastapi-ingress
+  labels:
+    app: fastapi
+  annotations:
+    # Configuraciones específicas para nginx-ingress
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    # Configuraciones de SSL (opcional, para HTTPS)
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # Configuraciones de CORS si las necesitas
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+    # Timeout configurations
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+spec:
+  rules:
+    # Acceso por IP (principal)
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: fastapi-service
+                port:
+                  number: 8000
+
+---
+# ----------------------------- 
+# Horizontal Pod Autoscaler 
+# ----------------------------- 
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: fastapi-hpa
+  labels:
+    app: fastapi
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: fastapi-deployment
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+
+---
+# ----------------------------- 
+# ConfigMap para configuraciones (opcional)
+# ----------------------------- 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fastapi-config
+data:
+  environment: "production"
+  log_level: "info"
+  # Agrega más configuraciones aquí

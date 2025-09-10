@@ -106,6 +106,11 @@ categories_data = [
 async def root():
     return {"message": "TicketPardo API - Último Partido de Messi"}
 
+# Endpoints
+@app.get("/health")
+async def root():
+    return "OK"
+
 @app.get("/api/events", response_model=List[Event])
 async def get_events():
     """Obtener todos los eventos disponibles"""

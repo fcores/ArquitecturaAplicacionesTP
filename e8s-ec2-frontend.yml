@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: react
-          image: ezequielfina/ticketpardo-frontend:main
+          image: ezequielfina/ticketpardo-frontend:kube
           imagePullPolicy: Always
           ports:
             - containerPort: 3000

@@ -26,15 +26,15 @@ spec:
           # Health checks para mejor manejo en la nube
           livenessProbe:
             httpGet:
-              path: /health  # asegúrate de tener este endpoint
+              path: /health  
               port: 3000
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60  # Aumentado para dar más tiempo
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /health
               port: 3000
-            initialDelaySeconds: 5
+            initialDelaySeconds: 30  # Aumentado
             periodSeconds: 5
           resources:
             requests:
@@ -49,7 +49,7 @@ spec:
 
 ---
 # ----------------------------- 
-# Service ClusterIP (para uso con Ingress)
+# Service ClusterIP (para uso interno)
 # ----------------------------- 
 apiVersion: v1
 kind: Service
@@ -58,131 +58,61 @@ metadata:
   labels:
     app: react
 spec:
-  type: ClusterIP  # Cambiado a ClusterIP para uso con Ingress
+  type: ClusterIP
   selector:
     app: react
   ports:
     - protocol: TCP
-      port: 3000      # puerto del Service dentro del cluster
-      targetPort: 3000 # puerto del contenedor
+      port: 3000
+      targetPort: 3000
       name: http
 
 ---
 # ----------------------------- 
-# Service NodePort (acceso externo garantizado)
+# Service NodePort (acceso externo para frontend)
 # ----------------------------- 
 apiVersion: v1
 kind: Service
 metadata:
-  name: fastapi-service-nodeport
+  name: ticketpardo-frontend-nodeport
   labels:
-    app: fastapi
+    app: react
 spec:
   type: NodePort
   selector:
-    app: fastapi
+    app: react  # Corregido: debe apuntar al frontend
   ports:
-    - name: http-main
+    - name: http
       protocol: TCP
       port: 3000
-      targetPort: 30000
-      nodePort: 30080  # Acceso desde exterior: http://TU-IP-EC2:30080
-    - name: http-alt
-      protocol: TCP
-      port: 80
       targetPort: 3000
-      nodePort: 30090  # Acceso alternativo: http://TU-IP-EC2:30090
+      nodePort: 30080  # Acceso: http://TU-IP-EC2:30080
 
 ---
 # ----------------------------- 
-# Ingress Controller Configuration
+# Ingress para Frontend
 # ----------------------------- 
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: fastapi-ingress
+  name: ticketpardo-frontend-ingress
   labels:
-    app: fastapi
+    app: react
   annotations:
-    # Configuraciones específicas para nginx-ingress
     kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/rewrite-target: /
-    # Configuraciones de SSL (opcional, para HTTPS)
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    # Configuraciones de CORS si las necesitas
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
-    # Timeout configurations
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
 spec:
   rules:
-    # Acceso por IP (principal)
     - http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: fastapi-service
+                name: ticketpardo-frontend-service  # Corregido
                 port:
-                  number: 8000
-
----
-# ----------------------------- 
-# Horizontal Pod Autoscaler 
-# ----------------------------- 
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: fastapi-hpa
-  labels:
-    app: fastapi
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: fastapi-deployment
-  minReplicas: 2
-  maxReplicas: 5
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 50
-    - type: Resource
-      resource:
-        name: memory
-        target:
-          type: Utilization
-          averageUtilization: 70
-  behavior:
-    scaleUp:
-      stabilizationWindowSeconds: 60
-      policies:
-      - type: Percent
-        value: 50
-        periodSeconds: 60
-    scaleDown:
-      stabilizationWindowSeconds: 300
-      policies:
-      - type: Percent
-        value: 10
-        periodSeconds: 60
-
----
-# ----------------------------- 
-# ConfigMap para configuraciones (opcional)
-# ----------------------------- 
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: fastapi-config
-data:
-  environment: "production"
-  log_level: "info"
-  # Agrega más configuraciones aquí
+                  number: 3000

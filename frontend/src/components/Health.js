@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 
 function Health() {
     const [data, setData] = useState('Cargando...');
-
+    /*
     useEffect(() => {
         const fetchHealth = async () => {
             try {
@@ -17,10 +17,10 @@ function Health() {
         };
 
         fetchHealth();
-    }, []);
+    }, []);*/
 
     return (
-        <h1>{data}</h1>
+        <h1>OK</h1>
     );
 }
 

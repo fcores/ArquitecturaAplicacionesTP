@@ -23,30 +23,22 @@ export const AppProvider = ({ children }) => {
     event: null
   });
 
-  // Configurar axios
-  const API_HOST = process.env.FASTAPI_SERVICE_SERVICE_HOST || 'localhost';
-  const API_PORT = process.env.FASTAPI_SERVICE_SERVICE_PORT || '8000';
-  axios.defaults.baseURL = `http://${API_HOST}:${API_PORT}`;
-
-  //axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-
-  // Cargar datos iniciales
   useEffect(() => {
+    // Configurar axios DENTRO del useEffect
+    const API_HOST = process.env.FASTAPI_SERVICE_SERVICE_HOST || 'localhost';
+    const API_PORT = process.env.FASTAPI_SERVICE_SERVICE_PORT || '8000';
+    axios.defaults.baseURL = `http://${API_HOST}:${API_PORT}`;
+
     const fetchData = async () => {
       try {
-        const [eventsRes, categoriesRes] = await Promise.all([
+        console.log('API URL:', axios.defaults.baseURL); // Debug
+        const [eventsResponse, categoriesResponse] = await Promise.all([
           axios.get('/api/events'),
           axios.get('/api/categories')
         ]);
-        
-        setEvents(eventsRes.data);
-        setCategories(categoriesRes.data);
-        setFilteredEvents(eventsRes.data);
+        // resto del código...
       } catch (error) {
         console.error('Error fetching data:', error);
-        toast.error('Error al cargar los datos');
-      } finally {
-        setLoading(false);
       }
     };
 

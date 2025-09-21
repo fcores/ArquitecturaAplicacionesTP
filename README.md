@@ -255,20 +255,45 @@ Este proyecto es para fines educativos y de demostración.
 
 **Estado Actual**: ✅ Todos los errores identificados han sido corregidos
 
-## ☁️ Despliegue en AWS Academy
+## ☁️ Despliegue en AWS EC2 con Minikube
 
-Para desplegar esta aplicación en AWS Academy (con limitaciones), consulta las guías:
+### 🎯 **Despliegue Completo con Kubernetes**
 
-📖 **[AWS_ACADEMY_DEPLOYMENT.md](./AWS_ACADEMY_DEPLOYMENT.md)** - Guía completa
-⚡ **[QUICK_START_ACADEMY.md](./QUICK_START_ACADEMY.md)** - Inicio rápido
+📖 **[DEPLOY_MINIKUBE.md](./DEPLOY_MINIKUBE.md)** - Guía completa de despliegue
+📖 **[QUICK_START.md](./QUICK_START.md)** - Inicio rápido (15 minutos)
 
-### Opciones de despliegue:
+### 🚀 **Despliegue Automático:**
+
+1. **Crear instancia EC2** (t3.medium recomendado)
+2. **Clonar repositorio**:
+   ```bash
+   git clone <URL_REPOSITORIO>
+   cd ArquitecturaAplicacionesTP
+   ```
+3. **Desplegar automáticamente**:
+   ```bash
+   bash scripts/make-executable.sh
+   bash scripts/quick-deploy.sh
+   ```
+
+### 🌐 **Acceso a la Aplicación:**
 ```bash
-# Opción 1: AWS Academy (EC2 + Docker Compose)
-./scripts/deploy-ec2.sh TU_EC2_IP
+# Port-forward para acceso
+kubectl port-forward svc/ticketpardo-frontend-service 3000:80 -n ticketpardo
+kubectl port-forward svc/ticketpardo-backend-service 8000:8000 -n ticketpardo
+```
 
-# Opción 2: Minikube Local (Kubernetes local)
-./scripts/deploy-minikube.sh
+- **Frontend**: http://TU_EC2_IP:3000
+- **Backend**: http://TU_EC2_IP:8000
+- **API Docs**: http://TU_EC2_IP:8000/docs
+- **Dashboard K8s**: `minikube dashboard --url`
+
+### 🛠️ **Comandos Útiles:**
+```bash
+make help           # Ver todos los comandos
+make monitor        # Monitorear estado
+make logs-backend   # Ver logs del backend
+make scale-backend REPLICAS=3  # Escalar backend
 ```
 
 ## 🤝 Contribución

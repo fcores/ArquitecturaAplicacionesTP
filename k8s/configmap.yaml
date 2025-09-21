@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ticketpardo-config
+  namespace: ticketpardo
+data:
+  # Configuración del backend
+  PYTHONPATH: "/app"
+  PYTHONUNBUFFERED: "1"
+  ENVIRONMENT: "production"
+  
+  # Configuración del frontend
+  NODE_ENV: "production"
+  
+  # URLs de servicios
+  BACKEND_URL: "http://ticketpardo-backend-service:8000"
+  FRONTEND_URL: "http://ticketpardo-frontend-service:80"

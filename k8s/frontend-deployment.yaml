@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ticketpardo-frontend
+  namespace: ticketpardo
+  labels:
+    app: ticketpardo-frontend
+    component: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ticketpardo-frontend
+  template:
+    metadata:
+      labels:
+        app: ticketpardo-frontend
+        component: web
+    spec:
+      containers:
+      - name: frontend
+        image: ticketpardo-frontend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      restartPolicy: Always

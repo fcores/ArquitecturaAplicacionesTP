@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticketpardo-frontend-service
+  namespace: ticketpardo
+  labels:
+    app: ticketpardo-frontend
+    component: web
+spec:
+  selector:
+    app: ticketpardo-frontend
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  type: LoadBalancer

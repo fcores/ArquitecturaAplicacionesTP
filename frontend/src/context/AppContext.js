@@ -25,9 +25,12 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     // Configurar axios DENTRO del useEffect
+    /*
     const API_HOST = process.env.FASTAPI_SERVICE_SERVICE_HOST || 'localhost';
     const API_PORT = process.env.FASTAPI_SERVICE_SERVICE_PORT || '8000';
-    axios.defaults.baseURL = `http://${API_HOST}:${API_PORT}`;
+    axios.defaults.baseURL = `http://${API_HOST}:${API_PORT}`;*/
+
+    axios.defaults.baseURL = 'http://10.108.69.178:8000';
 
     const fetchData = async () => {
       try {

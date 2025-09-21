@@ -246,11 +246,30 @@ Este proyecto es para fines educativos y de demostración.
    - **Solución**: Agregado reload automático y mejor logging
 
 **Archivos Nuevos Agregados:**
-- `backend/config.py` - Configuración centralizada
-- `QUICK_START.md` - Guía rápida de inicio
-- Scripts npm mejorados para desarrollo
+- `AWS_ACADEMY_DEPLOYMENT.md` - Guía completa para AWS Academy
+- `QUICK_START_ACADEMY.md` - Inicio rápido para Academy
+- `docker-compose.prod.yml` - Configuración de producción
+- `cloudformation-academy.yml` - Template de infraestructura
+- `scripts/deploy-ec2.sh` - Script de despliegue en EC2
+- `scripts/deploy-minikube.sh` - Script de despliegue local
 
 **Estado Actual**: ✅ Todos los errores identificados han sido corregidos
+
+## ☁️ Despliegue en AWS Academy
+
+Para desplegar esta aplicación en AWS Academy (con limitaciones), consulta las guías:
+
+📖 **[AWS_ACADEMY_DEPLOYMENT.md](./AWS_ACADEMY_DEPLOYMENT.md)** - Guía completa
+⚡ **[QUICK_START_ACADEMY.md](./QUICK_START_ACADEMY.md)** - Inicio rápido
+
+### Opciones de despliegue:
+```bash
+# Opción 1: AWS Academy (EC2 + Docker Compose)
+./scripts/deploy-ec2.sh TU_EC2_IP
+
+# Opción 2: Minikube Local (Kubernetes local)
+./scripts/deploy-minikube.sh
+```
 
 ## 🤝 Contribución
 

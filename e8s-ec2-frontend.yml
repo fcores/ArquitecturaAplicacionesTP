@@ -1,6 +1,4 @@
 # ----------------------------- 
-# Deployment 
-# ----------------------------- 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -46,6 +44,8 @@ spec:
           env:
             - name: ENV
               value: "production"
+            - name: REACT_APP_API_URL
+              value: "http://3.20.238.113:8000"
 
 ---
 # ----------------------------- 

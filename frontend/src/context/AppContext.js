@@ -24,7 +24,11 @@ export const AppProvider = ({ children }) => {
   });
 
   // Configurar axios
-  axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+  const API_HOST = process.env.FASTAPI_SERVICE_SERVICE_HOST || 'localhost';
+  const API_PORT = process.env.FASTAPI_SERVICE_SERVICE_PORT || '8000';
+  axios.defaults.baseURL = `http://${API_HOST}:${API_PORT}`;
+
+  //axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
   // Cargar datos iniciales
   useEffect(() => {

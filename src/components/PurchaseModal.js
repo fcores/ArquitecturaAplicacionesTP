@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaTimes, FaCalendar, FaMapMarkerAlt, FaTicketAlt, FaQrcode } from 'react-icons/fa';
+import { FaTimes, FaCalendar, FaMapMarkerAlt, FaTicketAlt, FaQrcode, FaCreditCard, FaPhone } from 'react-icons/fa';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAppContext } from '../context/AppContext';
+import toast from 'react-hot-toast';
 
 const ModalOverlay = styled(motion.div)`
   position: fixed;
@@ -266,7 +267,9 @@ const PurchaseModal = () => {
   const [formData, setFormData] = useState({
     customer_name: '',
     customer_email: '',
-    quantity: 1
+    customer_phone: '',
+    quantity: 1,
+    payment_method: 'credit_card'
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [purchaseResult, setPurchaseResult] = useState(null);
@@ -291,6 +294,13 @@ const PurchaseModal = () => {
     e.preventDefault();
     
     if (!formData.customer_name.trim() || !formData.customer_email.trim()) {
+      toast.error('Por favor completa todos los campos obligatorios');
+      return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.customer_email)) {
+      toast.error('Por favor ingresa un email válido');
       return;
     }
     
@@ -302,7 +312,9 @@ const PurchaseModal = () => {
         section: purchaseModal.event.category,
         quantity: formData.quantity,
         customer_email: formData.customer_email,
-        customer_name: formData.customer_name
+        customer_name: formData.customer_name,
+        customer_phone: formData.customer_phone,
+        payment_method: formData.payment_method
       });
       
       setPurchaseResult(result);
@@ -317,7 +329,9 @@ const PurchaseModal = () => {
     setFormData({
       customer_name: '',
       customer_email: '',
-      quantity: 1
+      customer_phone: '',
+      quantity: 1,
+      payment_method: 'credit_card'
     });
     setPurchaseResult(null);
     closePurchaseModal();
@@ -403,6 +417,34 @@ const PurchaseModal = () => {
                   </FormGroup>
 
                   <FormGroup>
+                    <label className="form-label">Teléfono (opcional)</label>
+                    <input
+                      type="tel"
+                      name="customer_phone"
+                      className="form-input"
+                      value={formData.customer_phone}
+                      onChange={handleInputChange}
+                      placeholder="+54 9 11 1234-5678"
+                    />
+                  </FormGroup>
+
+                  <FormGroup>
+                    <label className="form-label">Método de pago</label>
+                    <select
+                      name="payment_method"
+                      className="form-input"
+                      value={formData.payment_method}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="credit_card">Tarjeta de Crédito</option>
+                      <option value="debit_card">Tarjeta de Débito</option>
+                      <option value="bank_transfer">Transferencia Bancaria</option>
+                      <option value="digital_wallet">Billetera Digital</option>
+                    </select>
+                  </FormGroup>
+
+                  <FormGroup>
                     <label className="form-label">Cantidad de entradas</label>
                     <div className="quantity-controls">
                       <button
@@ -451,16 +493,24 @@ const PurchaseModal = () => {
                 <p>Tu entrada ha sido procesada correctamente</p>
                 
                 <div className="qr-container">
-                  <QRCodeSVG
-                    value={JSON.stringify({
-                      ticket_id: purchaseResult.ticket_id,
-                      event: purchaseModal.event?.title,
-                      customer: purchaseResult.customer_email,
-                      timestamp: new Date().toISOString()
-                    })}
-                    size={200}
-                    level="M"
-                  />
+                  {purchaseResult.qr_code ? (
+                    <img 
+                      src={purchaseResult.qr_code} 
+                      alt="QR Code" 
+                      style={{ width: '200px', height: '200px' }}
+                    />
+                  ) : (
+                    <QRCodeSVG
+                      value={JSON.stringify(purchaseResult.qr_data || {
+                        ticket_id: purchaseResult.ticket_id,
+                        event: purchaseModal.event?.title,
+                        customer: purchaseResult.customer_email,
+                        timestamp: new Date().toISOString()
+                      })}
+                      size={200}
+                      level="M"
+                    />
+                  )}
                 </div>
                 
                 <div className="ticket-id">

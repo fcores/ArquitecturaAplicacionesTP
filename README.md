@@ -60,20 +60,39 @@ npm install
 
 ## 🚀 Ejecución
 
-### Opción 1: Scripts Automáticos (Windows)
-1. Ejecuta `start-backend.bat` para iniciar el servidor FastAPI
-2. Ejecuta `start-frontend.bat` para iniciar el servidor React
-
-### Opción 2: Comandos Manuales
-
-#### Backend
+### 🎯 **Un solo comando (RECOMENDADO)**
 ```bash
-cd backend
-python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+npm run dev
+```
+Este comando levanta automáticamente tanto el backend como el frontend con colores diferenciados en la consola.
+
+### Comandos individuales
+```bash
+# Solo backend
+npm run start-backend
+
+# Solo frontend  
+npm run start-frontend
+# o
+npm start
 ```
 
-#### Frontend
+### Probar la API
 ```bash
+npm run test-api
+```
+
+### Instalación completa
+```bash
+npm run setup
+```
+
+### Comandos manuales alternativos
+```bash
+# Backend manualmente
+cd backend && python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+# Frontend manualmente  
 npm start
 ```
 
@@ -199,6 +218,39 @@ python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ## 📄 Licencia
 
 Este proyecto es para fines educativos y de demostración.
+
+## 🐛 Errores Corregidos
+
+### Análisis de Errores Realizado (Sep 2025)
+
+**Errores Identificados y Solucionados:**
+
+1. **Codificación de Caracteres** ✅
+   - **Problema**: Caracteres especiales no se mostraban correctamente
+   - **Solución**: Mejorado el encoding UTF-8 en la generación de QR codes
+
+2. **Configuración CORS** ✅
+   - **Problema**: CORS limitado solo a localhost:3000
+   - **Solución**: Agregado soporte para múltiples puertos y métodos HTTP específicos
+
+3. **Manejo de Errores Frontend** ✅
+   - **Problema**: Mensajes de error genéricos
+   - **Solución**: Implementado manejo específico por código de estado HTTP
+
+4. **Visualización QR Codes** ✅
+   - **Problema**: QR codes no mostraban datos del backend
+   - **Solución**: Integrado QR code generado por el backend con fallback
+
+5. **Configuración del Servidor** ✅
+   - **Problema**: Configuración básica sin opciones de desarrollo
+   - **Solución**: Agregado reload automático y mejor logging
+
+**Archivos Nuevos Agregados:**
+- `backend/config.py` - Configuración centralizada
+- `QUICK_START.md` - Guía rápida de inicio
+- Scripts npm mejorados para desarrollo
+
+**Estado Actual**: ✅ Todos los errores identificados han sido corregidos
 
 ## 🤝 Contribución
 

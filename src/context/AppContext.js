@@ -85,12 +85,39 @@ export const AppProvider = ({ children }) => {
   const processPurchase = async (purchaseData) => {
     try {
       const response = await axios.post('/api/purchase', purchaseData);
-      toast.success('Compra procesada exitosamente');
-      closePurchaseModal();
-      return response.data;
+      
+      if (response.data.success) {
+        toast.success(response.data.message || 'Compra procesada exitosamente');
+        return response.data;
+      } else {
+        throw new Error(response.data.message || 'Error en la compra');
+      }
     } catch (error) {
       console.error('Error processing purchase:', error);
-      toast.error('Error al procesar la compra');
+      
+      // Manejo específico de errores de validación
+      if (error.response?.status === 422) {
+        const validationErrors = error.response.data?.detail;
+        if (Array.isArray(validationErrors)) {
+          const errorMessages = validationErrors.map(err => err.msg).join(', ');
+          toast.error(`Error de validación: ${errorMessages}`);
+        } else {
+          toast.error('Error de validación en los datos enviados');
+        }
+      } else if (error.response?.status === 404) {
+        toast.error('Evento no encontrado');
+      } else if (error.response?.status === 400) {
+        toast.error(error.response.data?.detail || 'Solicitud inválida');
+      } else if (error.response?.status >= 500) {
+        toast.error('Error del servidor. Por favor, intenta más tarde');
+      } else if (error.response?.data?.detail) {
+        toast.error(error.response.data.detail);
+      } else if (error.message) {
+        toast.error(error.message);
+      } else {
+        toast.error('Error al procesar la compra');
+      }
+      
       throw error;
     }
   };

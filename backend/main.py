@@ -1,64 +1,76 @@
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr, field_validator
 from typing import List, Optional, Dict, Any
-import qrcode
-import io
-import base64
-from datetime import datetime, timedelta
-import json
-import uuid
-import hashlib
-import secrets
+from datetime import datetime
 from enum import Enum
+import qrcode
+import hashlib
+import json
+import base64
+import secrets
+import uuid
+import io
+import os
 
 app = FastAPI(
     title="TicketPardo API",
     description="API para el sistema de entradas del último partido de Messi",
-    version="1.0.0"
+    version="1.0.0",
 )
 
-# Configuración CORS
-import os
+# ------------------------------------------------------------------------------
+# CORS
+# ------------------------------------------------------------------------------
 
-# Configurar orígenes permitidos para CORS
-def get_cors_origins():
-    """Obtener orígenes permitidos desde variables de entorno o configuración por defecto"""
-    # Obtener IP pública de EC2 si está disponible
-    try:
-        import requests
-        ec2_ip = requests.get('http://169.254.169.254/latest/meta-data/public-ipv4', timeout=2).text
-    except:
-        ec2_ip = None
-    
-    # Orígenes base
-    origins = [
-        "http://localhost:3000",  # Desarrollo local
-        "http://127.0.0.1:3000",  # Desarrollo local alternativo
+def get_cors_origins() -> List[str]:
+    """
+    Orígenes permitidos:
+      - por defecto: localhost/127.0.0.1 (dev)
+      - si CORS_ORIGINS = "*" => todo permitido
+      - si CORS_ORIGINS = "http://a,http://b" => usa esa lista
+      - intenta agregar IP pública de EC2 (mejor esfuerzo)
+    """
+    env_origins = os.getenv("CORS_ORIGINS", "").strip()
+
+    if env_origins == "*":
+        return ["*"]
+
+    origins: List[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
     ]
-    
-    # Agregar IP pública de EC2 si está disponible
-    if ec2_ip and ec2_ip != "":
-        origins.extend([
-            f"http://{ec2_ip}",           # IP pública sin puerto
-            f"http://{ec2_ip}:3000",      # Frontend en puerto 3000
-            f"http://{ec2_ip}:30000",     # NodePort range start
-            f"http://{ec2_ip}:30080",     # NodePort común para frontend
-            f"http://{ec2_ip}:32000",     # NodePort range common
-        ])
-    
-    # Permitir configuración manual desde variable de entorno
-    env_origins = os.getenv("CORS_ORIGINS", "")
+
+    # Sumar orígenes pasados por env (separados por coma)
     if env_origins:
-        if env_origins == "*":
-            return ["*"]  # Permitir todos los orígenes
-        origins.extend(env_origins.split(","))
-    
-    # Eliminar duplicados y vacíos
-    origins = list(set([origin.strip() for origin in origins if origin.strip()]))
-    
-    return origins
+        origins.extend([o.strip() for o in env_origins.split(",") if o.strip()])
+
+    # Mejor esfuerzo: IP pública de EC2 (no es requerido)
+    try:
+        import requests  # solo si está instalado
+        ec2_ip = requests.get(
+            "http://169.254.169.254/latest/meta-data/public-ipv4",
+            timeout=2,
+        ).text.strip()
+        if ec2_ip:
+            origins.extend([
+                f"http://{ec2_ip}",
+                f"http://{ec2_ip}:3000",
+                f"http://{ec2_ip}:30080",
+                f"http://{ec2_ip}:32000",
+            ])
+    except Exception:
+        pass
+
+    # Normalizar y quitar duplicados
+    clean = []
+    seen = set()
+    for o in origins:
+        if o and o not in seen:
+            seen.add(o)
+            clean.append(o)
+    return clean
+
 
 cors_origins = get_cors_origins()
 
@@ -66,11 +78,14 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Permitir todos los métodos HTTP
-    allow_headers=["*"],  # Permitir todos los headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Modelos Pydantic
+# ------------------------------------------------------------------------------
+# Modelos
+# ------------------------------------------------------------------------------
+
 class Event(BaseModel):
     id: int
     title: str
@@ -82,6 +97,7 @@ class Event(BaseModel):
     image_url: str
     description: str
 
+
 class Ticket(BaseModel):
     id: int
     event_id: int
@@ -92,11 +108,13 @@ class Ticket(BaseModel):
     status: str
     qr_code: Optional[str] = None
 
+
 class PaymentMethod(str, Enum):
     CREDIT_CARD = "credit_card"
     DEBIT_CARD = "debit_card"
     BANK_TRANSFER = "bank_transfer"
     DIGITAL_WALLET = "digital_wallet"
+
 
 class PurchaseRequest(BaseModel):
     event_id: int
@@ -106,20 +124,21 @@ class PurchaseRequest(BaseModel):
     customer_name: str
     customer_phone: Optional[str] = None
     payment_method: PaymentMethod
-    
-    @field_validator('quantity')
+
+    @field_validator("quantity")
     @classmethod
-    def validate_quantity(cls, v):
+    def validate_quantity(cls, v: int) -> int:
         if v < 1 or v > 10:
-            raise ValueError('La cantidad debe estar entre 1 y 10')
+            raise ValueError("La cantidad debe estar entre 1 y 10")
         return v
-    
-    @field_validator('customer_name')
+
+    @field_validator("customer_name")
     @classmethod
-    def validate_name(cls, v):
+    def validate_name(cls, v: str) -> str:
         if len(v.strip()) < 2:
-            raise ValueError('El nombre debe tener al menos 2 caracteres')
+            raise ValueError("El nombre debe tener al menos 2 caracteres")
         return v.strip()
+
 
 class PurchaseResponse(BaseModel):
     success: bool
@@ -133,15 +152,16 @@ class PurchaseResponse(BaseModel):
     event_details: Dict[str, Any]
     payment_reference: str
 
+
 class NewsletterSubscription(BaseModel):
     email: str
     name: Optional[str] = None
 
-# Base de datos simulada para tickets
-tickets_database = {}
-purchases_database = {}
 
+# ------------------------------------------------------------------------------
 # Datos simulados
+# ------------------------------------------------------------------------------
+
 events_data = [
     {
         "id": 1,
@@ -152,7 +172,7 @@ events_data = [
         "category": "Platea Preferencial",
         "status": "Agotándose",
         "image_url": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=250&fit=crop",
-        "description": "El adiós del GOAT del fútbol. No te pierdas este momento histórico."
+        "description": "El adiós del GOAT del fútbol. No te pierdas este momento histórico.",
     },
     {
         "id": 2,
@@ -163,7 +183,7 @@ events_data = [
         "category": "Platea Media",
         "status": "Disponible",
         "image_url": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=250&fit=crop",
-        "description": "Excelente vista panorámica del campo."
+        "description": "Excelente vista panorámica del campo.",
     },
     {
         "id": 3,
@@ -174,77 +194,83 @@ events_data = [
         "category": "Platea Alta",
         "status": "Próximamente",
         "image_url": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=250&fit=crop",
-        "description": "Vista completa del estadio."
-    }
+        "description": "Vista completa del estadio.",
+    },
 ]
 
 categories_data = [
     {"id": 1, "name": "Platea Preferencial", "icon": "star", "description": "Vista privilegiada del campo"},
     {"id": 2, "name": "Platea Media", "icon": "eye", "description": "Excelente vista panorámica"},
     {"id": 3, "name": "Platea Alta", "icon": "mountain", "description": "Vista completa del estadio"},
-    {"id": 4, "name": "Gradas Populares", "icon": "users", "description": "Ambiente de pasión futbolera"}
+    {"id": 4, "name": "Gradas Populares", "icon": "users", "description": "Ambiente de pasión futbolera"},
 ]
 
+# “Bases de datos” simuladas en memoria
+tickets_database: Dict[str, Dict[str, Any]] = {}
+purchases_database: Dict[str, Dict[str, Any]] = {}
+
+# ------------------------------------------------------------------------------
 # Endpoints
+# ------------------------------------------------------------------------------
+
 @app.get("/")
 async def root():
     return {"message": "TicketPardo API - Último Partido de Messi"}
 
+
+@app.get("/healthz")
+async def healthz():
+    return {"status": "ok", "time": datetime.utcnow().isoformat()}
+
+
 @app.get("/api/cors-info")
 async def cors_info():
-    """Endpoint de debug para mostrar configuración de CORS"""
     return {
         "cors_origins": cors_origins,
         "total_origins": len(cors_origins),
         "environment": os.getenv("ENVIRONMENT", "development"),
-        "cors_configured": True
+        "cors_configured": True,
     }
+
 
 @app.get("/api/events", response_model=List[Event])
 async def get_events():
-    """Obtener todos los eventos disponibles"""
     return events_data
+
 
 @app.get("/api/events/{event_id}", response_model=Event)
 async def get_event(event_id: int):
-    """Obtener un evento específico por ID"""
     for event in events_data:
         if event["id"] == event_id:
             return event
     raise HTTPException(status_code=404, detail="Evento no encontrado")
 
+
 @app.get("/api/categories")
 async def get_categories():
-    """Obtener todas las categorías de entradas"""
     return categories_data
+
 
 @app.post("/api/purchase", response_model=PurchaseResponse)
 async def purchase_tickets(purchase: PurchaseRequest):
-    """Procesar compra de entradas con validación mejorada y QR seguro"""
     try:
-        # Buscar el evento
-        event = None
-        for e in events_data:
-            if e["id"] == purchase.event_id:
-                event = e
-                break
-        
+        # Buscar evento
+        event = next((e for e in events_data if e["id"] == purchase.event_id), None)
         if not event:
             raise HTTPException(status_code=404, detail="Evento no encontrado")
-        
-        # Verificar disponibilidad
+
         if event["status"] not in ["Disponible", "Agotándose"]:
             raise HTTPException(status_code=400, detail="Evento no disponible para compra")
-        
-        # Generar IDs únicos
+
+        # IDs y fechas
         ticket_id = f"TKT-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}"
         payment_reference = f"PAY-{secrets.token_hex(8).upper()}"
         purchase_date = datetime.now()
-        
-        # Calcular precio total
+
+        # Monto total
         total_amount = purchase.quantity * event["price"]
-        
-        # Crear datos seguros para el QR
+
+        # Datos del QR
         qr_data = {
             "ticket_id": ticket_id,
             "event_id": purchase.event_id,
@@ -258,28 +284,27 @@ async def purchase_tickets(purchase: PurchaseRequest):
             "purchase_date": purchase_date.isoformat(),
             "total_amount": total_amount,
             "payment_reference": payment_reference,
-            "verification_hash": hashlib.sha256(f"{ticket_id}{purchase.customer_email}{purchase_date.isoformat()}".encode()).hexdigest()[:16]
+            "verification_hash": hashlib.sha256(
+                f"{ticket_id}{purchase.customer_email}{purchase_date.isoformat()}".encode()
+            ).hexdigest()[:16],
         }
-        
-        # Crear QR code con mejor configuración
+
+        # Generar QR
         qr = qrcode.QRCode(
             version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_H,  # Mayor corrección de errores
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
             box_size=12,
             border=4,
         )
         qr.add_data(json.dumps(qr_data, ensure_ascii=False))
         qr.make(fit=True)
-        
-        # Generar imagen del QR
         img = qr.make_image(fill_color="#1a1a1a", back_color="white")
-        
-        # Convertir a base64
-        buffer = io.BytesIO()
-        img.save(buffer, format='PNG', optimize=True)
-        qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-        
-        # Guardar en base de datos simulada
+
+        buf = io.BytesIO()
+        img.save(buf, format="PNG", optimize=True)
+        qr_base64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+
+        # Guardar “BD”
         ticket_record = {
             "ticket_id": ticket_id,
             "event_id": purchase.event_id,
@@ -293,14 +318,12 @@ async def purchase_tickets(purchase: PurchaseRequest):
             "purchase_date": purchase_date.isoformat(),
             "status": "confirmed",
             "qr_data": qr_data,
-            "used": False
+            "used": False,
         }
-        
         tickets_database[ticket_id] = ticket_record
         purchases_database[payment_reference] = ticket_record
-        
-        # Preparar respuesta
-        response = PurchaseResponse(
+
+        return PurchaseResponse(
             success=True,
             message="¡Compra procesada exitosamente! Tu entrada ha sido confirmada.",
             ticket_id=ticket_id,
@@ -313,119 +336,115 @@ async def purchase_tickets(purchase: PurchaseRequest):
                 "title": event["title"],
                 "date": event["date"],
                 "location": event["location"],
-                "category": event["category"]
+                "category": event["category"],
             },
-            payment_reference=payment_reference
+            payment_reference=payment_reference,
         )
-        
-        return response
-        
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
+
 @app.post("/api/newsletter")
 async def subscribe_newsletter(subscription: NewsletterSubscription):
-    """Suscribir a newsletter"""
     return {
         "success": True,
-        "message": f"Email {subscription.email} suscrito exitosamente al newsletter"
+        "message": f"Email {subscription.email} suscrito exitosamente al newsletter",
     }
+
 
 @app.get("/api/search")
 async def search_events(query: str):
-    """Buscar eventos por término"""
-    query_lower = query.lower()
+    q = query.lower()
     results = []
-    
     for event in events_data:
-        if (query_lower in event["title"].lower() or 
-            query_lower in event["location"].lower() or 
-            query_lower in event["category"].lower()):
+        if (
+            q in event["title"].lower()
+            or q in event["location"].lower()
+            or q in event["category"].lower()
+        ):
             results.append(event)
-    
     return results
+
 
 @app.get("/api/ticket/{ticket_id}")
 async def get_ticket(ticket_id: str):
-    """Obtener información de un ticket por ID"""
     if ticket_id not in tickets_database:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
-    
-    ticket = tickets_database[ticket_id]
+    t = tickets_database[ticket_id]
     return {
-        "ticket_id": ticket["ticket_id"],
-        "event_id": ticket["event_id"],
-        "customer_name": ticket["customer_name"],
-        "quantity": ticket["quantity"],
-        "purchase_date": ticket["purchase_date"],
-        "status": ticket["status"],
-        "used": ticket["used"]
+        "ticket_id": t["ticket_id"],
+        "event_id": t["event_id"],
+        "customer_name": t["customer_name"],
+        "quantity": t["quantity"],
+        "purchase_date": t["purchase_date"],
+        "status": t["status"],
+        "used": t["used"],
     }
 
+
 @app.post("/api/verify-ticket")
-async def verify_ticket(ticket_data: dict):
-    """Verificar la validez de un ticket usando el QR"""
+async def verify_ticket(ticket_data: Dict[str, Any]):
     try:
         ticket_id = ticket_data.get("ticket_id")
         verification_hash = ticket_data.get("verification_hash")
-        
+
         if not ticket_id or not verification_hash:
             raise HTTPException(status_code=400, detail="Datos de verificación incompletos")
-        
+
         if ticket_id not in tickets_database:
             return {"valid": False, "message": "Ticket no encontrado"}
-        
-        ticket = tickets_database[ticket_id]
-        expected_hash = hashlib.sha256(f"{ticket_id}{ticket['customer_email']}{ticket['purchase_date']}".encode()).hexdigest()[:16]
-        
+
+        t = tickets_database[ticket_id]
+        expected_hash = hashlib.sha256(
+            f"{ticket_id}{t['customer_email']}{t['purchase_date']}".encode()
+        ).hexdigest()[:16]
+
         if verification_hash != expected_hash:
             return {"valid": False, "message": "Ticket inválido o falsificado"}
-        
-        if ticket["used"]:
+
+        if t["used"]:
             return {"valid": False, "message": "Ticket ya utilizado"}
-        
+
         return {
             "valid": True,
             "message": "Ticket válido",
             "ticket_info": {
-                "event_title": ticket["qr_data"]["event_title"],
-                "customer_name": ticket["customer_name"],
-                "quantity": ticket["quantity"],
-                "section": ticket["qr_data"]["section"]
-            }
+                "event_title": t["qr_data"]["event_title"],
+                "customer_name": t["customer_name"],
+                "quantity": t["quantity"],
+                "section": t["qr_data"]["section"],
+            },
         }
-        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en verificación: {str(e)}")
 
+
 @app.post("/api/use-ticket/{ticket_id}")
 async def use_ticket(ticket_id: str):
-    """Marcar un ticket como usado"""
     if ticket_id not in tickets_database:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
-    
-    ticket = tickets_database[ticket_id]
-    
-    if ticket["used"]:
-        raise HTTPException(status_code=400, detail="Ticket ya utilizado")
-    
-    tickets_database[ticket_id]["used"] = True
-    tickets_database[ticket_id]["used_date"] = datetime.now().isoformat()
-    
-    return {
-        "success": True,
-        "message": "Ticket marcado como usado",
-        "used_date": tickets_database[ticket_id]["used_date"]
-    }
 
+    t = tickets_database[ticket_id]
+    if t["used"]:
+        raise HTTPException(status_code=400, detail="Ticket ya utilizado")
+
+    t["used"] = True
+    t["used_date"] = datetime.now().isoformat()
+    return {"success": True, "message": "Ticket marcado como usado", "used_date": t["used_date"]}
+
+
+# ------------------------------------------------------------------------------
+# Local dev runner (opcional)
+# ------------------------------------------------------------------------------
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
-        app, 
-        host="0.0.0.0", 
-        port=8000,
-        reload=True,
-        log_level="info"
+        "backend.main:app",          # << IMPORTANTE para que funcione igual en local
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "8000")),
+        reload=bool(os.getenv("DEV_RELOAD", "")),  # export DEV_RELOAD=1 si quieres hot-reload
+        log_level="info",
     )

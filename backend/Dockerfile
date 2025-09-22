@@ -1,34 +1,21 @@
-# Dockerfile para Backend FastAPI
 FROM python:3.11-slim
 
-# Establecer directorio de trabajo
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=off \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PIP_DEFAULT_TIMEOUT=100
+
 WORKDIR /app
 
-# Instalar dependencias del sistema
-RUN apt-get update && apt-get install -y \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends build-essential gcc \
+ && rm -rf /var/lib/apt/lists/*
 
-# Copiar archivo de requirements
-COPY requirements.txt .
-
-# Instalar dependencias de Python
+COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar código fuente
-COPY . .
+COPY backend ./backend
 
-# Crear usuario no-root para seguridad
-RUN useradd --create-home --shell /bin/bash app \
-    && chown -R app:app /app
-USER app
-
-# Exponer puerto
 EXPOSE 8000
-
-# Variables de entorno
-ENV PYTHONPATH=/app
-ENV PYTHONUNBUFFERED=1
-
-# Comando por defecto
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

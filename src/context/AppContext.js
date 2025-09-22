@@ -23,8 +23,8 @@ export const AppProvider = ({ children }) => {
     event: null
   });
 
-  // Configurar axios
-  axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+  // Configurar axios - usar proxy reverso en producción
+  axios.defaults.baseURL = process.env.REACT_APP_API_URL || '/api';
 
   // Cargar datos iniciales
   useEffect(() => {

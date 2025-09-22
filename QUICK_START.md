@@ -61,12 +61,11 @@ make monitor
 ```
 📦 ArquitecturaAplicacionesTP/
 ├── 🐳 Docker
-│   ├── Dockerfile.frontend (con proxy reverso)
+│   ├── Dockerfile.frontend (optimizado con proxy reverso)
 │   ├── backend/Dockerfile
-│   ├── docker-compose.yml
-│   └── nginx.conf
+│   └── nginx.conf (proxy reverso configurado)
 ├── ☸️ Kubernetes
-│   └── k8s/
+│   └── k8s/ (7 manifiestos)
 │       ├── namespace.yaml
 │       ├── configmap.yaml
 │       ├── backend-deployment.yaml
@@ -75,21 +74,22 @@ make monitor
 │       ├── frontend-service.yaml
 │       └── ingress.yaml
 ├── 🚀 Scripts
-│   └── scripts/
+│   └── scripts/ (8 scripts optimizados)
 │       ├── setup-ec2.sh
 │       ├── deploy-minikube.sh
 │       ├── build-images.sh
 │       ├── quick-deploy.sh
-│       ├── recomendacion-proxy.sh
+│       ├── verify-frontend-config.sh
 │       ├── monitor.sh
 │       ├── cleanup.sh
 │       └── make-executable.sh
 ├── ⚙️ Configuración
 │   └── Makefile
 └── 📚 Documentación
+    ├── README.md
     ├── DEPLOY_MINIKUBE.md
     ├── QUICK_START.md
-    └── PROXY_REVERSO_SOLUTION.md
+    └── FRONTEND_BACKEND_VERIFICATION.md
 ```
 
 ## ✅ ¡Listo!

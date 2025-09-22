@@ -21,14 +21,53 @@ app = FastAPI(
 
 # Configuración CORS
 import os
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+
+# Configurar orígenes permitidos para CORS
+def get_cors_origins():
+    """Obtener orígenes permitidos desde variables de entorno o configuración por defecto"""
+    # Obtener IP pública de EC2 si está disponible
+    try:
+        import requests
+        ec2_ip = requests.get('http://169.254.169.254/latest/meta-data/public-ipv4', timeout=2).text
+    except:
+        ec2_ip = None
+    
+    # Orígenes base
+    origins = [
+        "http://localhost:3000",  # Desarrollo local
+        "http://127.0.0.1:3000",  # Desarrollo local alternativo
+    ]
+    
+    # Agregar IP pública de EC2 si está disponible
+    if ec2_ip and ec2_ip != "":
+        origins.extend([
+            f"http://{ec2_ip}",           # IP pública sin puerto
+            f"http://{ec2_ip}:3000",      # Frontend en puerto 3000
+            f"http://{ec2_ip}:30000",     # NodePort range start
+            f"http://{ec2_ip}:30080",     # NodePort común para frontend
+            f"http://{ec2_ip}:32000",     # NodePort range common
+        ])
+    
+    # Permitir configuración manual desde variable de entorno
+    env_origins = os.getenv("CORS_ORIGINS", "")
+    if env_origins:
+        if env_origins == "*":
+            return ["*"]  # Permitir todos los orígenes
+        origins.extend(env_origins.split(","))
+    
+    # Eliminar duplicados y vacíos
+    origins = list(set([origin.strip() for origin in origins if origin.strip()]))
+    
+    return origins
+
+cors_origins = get_cors_origins()
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Permitir todos los métodos HTTP
+    allow_headers=["*"],  # Permitir todos los headers
 )
 
 # Modelos Pydantic
@@ -150,6 +189,16 @@ categories_data = [
 @app.get("/")
 async def root():
     return {"message": "TicketPardo API - Último Partido de Messi"}
+
+@app.get("/api/cors-info")
+async def cors_info():
+    """Endpoint de debug para mostrar configuración de CORS"""
+    return {
+        "cors_origins": cors_origins,
+        "total_origins": len(cors_origins),
+        "environment": os.getenv("ENVIRONMENT", "development"),
+        "cors_configured": True
+    }
 
 @app.get("/api/events", response_model=List[Event])
 async def get_events():

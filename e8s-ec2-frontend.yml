@@ -37,10 +37,10 @@ spec:
           resources:
             requests:
               cpu: 100m
-              memory: 512Mi
+              memory: 128Mi
             limits:
-              cpu: 500m
-              memory: 1024Mi
+              cpu: 250m
+              memory: 256Mi
           env:
             - name: ENV
               value: "production"
@@ -116,3 +116,47 @@ spec:
                 name: ticketpardo-frontend-service  # Corregido
                 port:
                   number: 3000
+
+---
+# -----------------------------
+# Horizontal Pod Autoscaler para Frontend
+# -----------------------------
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ticketpardo-frontend-hpa
+  labels:
+    app: react
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ticketpardo-frontend
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 30   # Escala con poca carga
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 40
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0   # reacciona enseguida
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 60  # baja más rápido
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 30

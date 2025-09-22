@@ -41,7 +41,7 @@ spec:
               cpu: 100m
               memory: 128Mi
             limits:
-              cpu: 500m
+              cpu: 250m
               memory: 256Mi
           env:
             - name: ENV
@@ -100,7 +100,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: fastapi-service
+                name: ticketpardo-backend-service
                 port:
                   number: 8000
 
@@ -111,14 +111,14 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: fastapi-hpa
+  name: ticketpardo-backend-hpa
   labels:
     app: fastapi
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: fastapi-deployment
+    name: ticketpardo-backend   # Corregido
   minReplicas: 2
   maxReplicas: 5
   metrics:
@@ -127,26 +127,26 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 50
+          averageUtilization: 30
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
-          averageUtilization: 70
+          averageUtilization: 40
   behavior:
     scaleUp:
-      stabilizationWindowSeconds: 60
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 30   # Más rápido para demo
       policies:
       - type: Percent
         value: 50
-        periodSeconds: 60
-    scaleDown:
-      stabilizationWindowSeconds: 300
-      policies:
-      - type: Percent
-        value: 10
-        periodSeconds: 60
+        periodSeconds: 30
 
 ---
 # ----------------------------- 

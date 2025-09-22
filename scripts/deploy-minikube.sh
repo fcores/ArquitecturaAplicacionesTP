@@ -45,7 +45,7 @@ docker build -t ticketpardo-backend:latest -f backend/Dockerfile ./backend/
 
 # Construir imagen del frontend con proxy reverso
 echo "   🌐 Construyendo frontend con proxy reverso..."
-docker build -t ticketpardo-frontend:latest -f Dockerfile.frontend --build-arg REACT_APP_API_URL=/api .
+docker build -t ticketpardo-frontend:latest -f Dockerfile.frontend --build-arg VITE_API_BASE=/api .
 
 # Verificar que las imágenes se construyeron correctamente
 echo "🔍 Verificando imágenes construidas..."

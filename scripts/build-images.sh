@@ -35,7 +35,7 @@ echo "✅ Backend construido exitosamente"
 echo ""
 echo "🌐 Construyendo imagen del frontend..."
 docker build \
-    --build-arg REACT_APP_API_URL="/api" \
+    --build-arg VITE_API_BASE="/api" \
     -t ticketpardo-frontend:$IMAGE_TAG \
     -t $DOCKER_REGISTRY/ticketpardo-frontend:$IMAGE_TAG \
     -f Dockerfile.frontend \

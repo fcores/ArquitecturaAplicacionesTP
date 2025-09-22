@@ -30,7 +30,7 @@ export const AppProvider = ({ children }) => {
     const API_PORT = process.env.FASTAPI_SERVICE_SERVICE_PORT || '8000';
     axios.defaults.baseURL = `http://${API_HOST}:${API_PORT}`;*/
 
-    axios.defaults.baseURL = 'http://10.108.69.178:8000';
+    axios.defaults.baseURL = 'http://3.20.238.113:8000';
 
     const fetchData = async () => {
       try {

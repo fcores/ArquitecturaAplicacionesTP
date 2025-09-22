@@ -43,9 +43,9 @@ echo "🏗️ Construyendo imágenes Docker..."
 echo "   📦 Construyendo backend..."
 docker build -t ticketpardo-backend:latest -f backend/Dockerfile ./backend/
 
-# Construir imagen del frontend
-echo "   🌐 Construyendo frontend..."
-docker build -t ticketpardo-frontend:latest -f Dockerfile.frontend .
+# Construir imagen del frontend con proxy reverso
+echo "   🌐 Construyendo frontend con proxy reverso..."
+docker build -t ticketpardo-frontend:latest -f Dockerfile.frontend --build-arg REACT_APP_API_URL=/api .
 
 # Verificar que las imágenes se construyeron correctamente
 echo "🔍 Verificando imágenes construidas..."
@@ -113,6 +113,13 @@ echo "   Ver logs del frontend: kubectl logs -f deployment/ticketpardo-frontend 
 echo "   Dashboard de Minikube: minikube dashboard"
 echo "   Escalar backend: kubectl scale deployment ticketpardo-backend --replicas=3 -n ticketpardo"
 echo "   Reiniciar despliegue: kubectl rollout restart deployment/ticketpardo-backend -n ticketpardo"
+
+# Verificar que el frontend no tiene referencias a localhost
+echo ""
+echo "🔍 Verificando configuración del frontend..."
+kubectl wait --for=condition=ready pod -l app=ticketpardo-frontend -n ticketpardo --timeout=60s
+sleep 5
+kubectl exec -n ticketpardo deployment/ticketpardo-frontend -- sh -c 'grep -R "localhost:8000" /usr/share/nginx/html || echo "✅ OK: sin referencias a localhost"'
 
 echo ""
 echo "✅ ¡Despliegue completado exitosamente!"

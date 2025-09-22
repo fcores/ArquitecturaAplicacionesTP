@@ -10,12 +10,20 @@ COPY package*.json ./
 # Instalar dependencias
 RUN npm ci --only=production
 
+# Argumentos de build para API base (usar proxy reverso)
+ARG REACT_APP_API_URL=/api
+ARG REACT_APP_ENVIRONMENT=production
+
+# Establecer variables de entorno
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+ENV REACT_APP_ENVIRONMENT=$REACT_APP_ENVIRONMENT
+
 # Copiar código fuente
 COPY src/ ./src/
 COPY public/ ./public/
 
-# Construir la aplicación
-RUN npm run build
+# Construir la aplicación con proxy reverso
+RUN REACT_APP_API_URL=$REACT_APP_API_URL npm run build
 
 # Etapa de producción con Nginx
 FROM nginx:alpine

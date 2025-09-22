@@ -12,6 +12,9 @@ data:
   # Configuración del frontend
   NODE_ENV: "production"
   
-  # URLs de servicios
+  # URLs de servicios internos
   BACKEND_URL: "http://ticketpardo-backend-service:8000"
   FRONTEND_URL: "http://ticketpardo-frontend-service:80"
+  
+  # CORS - Permitir acceso desde cualquier origen (proxy reverso)
+  CORS_ORIGINS: "*"

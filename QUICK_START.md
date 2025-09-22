@@ -56,16 +56,15 @@ make quick-deploy
 make monitor
 ```
 
-## 📁 Estructura de Archivos Creados
+## 📁 Estructura de Archivos
 
 ```
 📦 ArquitecturaAplicacionesTP/
 ├── 🐳 Docker
-│   ├── Dockerfile.frontend
+│   ├── Dockerfile.frontend (con proxy reverso)
 │   ├── backend/Dockerfile
 │   ├── docker-compose.yml
-│   ├── nginx.conf
-│   └── .dockerignore
+│   └── nginx.conf
 ├── ☸️ Kubernetes
 │   └── k8s/
 │       ├── namespace.yaml
@@ -81,16 +80,16 @@ make monitor
 │       ├── deploy-minikube.sh
 │       ├── build-images.sh
 │       ├── quick-deploy.sh
+│       ├── recomendacion-proxy.sh
 │       ├── monitor.sh
 │       ├── cleanup.sh
 │       └── make-executable.sh
 ├── ⚙️ Configuración
-│   ├── env.example
-│   ├── env.production
 │   └── Makefile
 └── 📚 Documentación
     ├── DEPLOY_MINIKUBE.md
-    └── QUICK_START.md
+    ├── QUICK_START.md
+    └── PROXY_REVERSO_SOLUTION.md
 ```
 
 ## ✅ ¡Listo!

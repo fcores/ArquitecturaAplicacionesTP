@@ -261,6 +261,7 @@ Este proyecto es para fines educativos y de demostración.
 
 📖 **[DEPLOY_MINIKUBE.md](./DEPLOY_MINIKUBE.md)** - Guía completa de despliegue
 📖 **[QUICK_START.md](./QUICK_START.md)** - Inicio rápido (15 minutos)
+📖 **[PROXY_REVERSO_SOLUTION.md](./PROXY_REVERSO_SOLUTION.md)** - Solución con Proxy Reverso
 
 ### 🚀 **Despliegue Automático:**
 

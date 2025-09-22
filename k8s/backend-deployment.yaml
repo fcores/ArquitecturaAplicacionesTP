@@ -31,6 +31,12 @@ spec:
           value: "1"
         - name: ENVIRONMENT
           value: "production"
+        - name: CORS_ORIGINS
+          valueFrom:
+            configMapKeyRef:
+              name: ticketpardo-config
+              key: CORS_ORIGINS
+              optional: true
         resources:
           requests:
             memory: "256Mi"

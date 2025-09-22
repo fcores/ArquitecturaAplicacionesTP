@@ -24,26 +24,26 @@ export const AppProvider = ({ children }) => {
   });
 
   useEffect(() => {
-    // Configurar axios DENTRO del useEffect
-    /*
-    const API_HOST = process.env.FASTAPI_SERVICE_SERVICE_HOST || 'localhost';
-    const API_PORT = process.env.FASTAPI_SERVICE_SERVICE_PORT || '8000';
-    axios.defaults.baseURL = `http://${API_HOST}:${API_PORT}`;*/
+  axios.defaults.baseURL = 'http://3.20.238.113:8000';
 
-    axios.defaults.baseURL = 'http://3.20.238.113:8000';
-
-    const fetchData = async () => {
-      try {
-        console.log('API URL:', axios.defaults.baseURL); // Debug
-        const [eventsResponse, categoriesResponse] = await Promise.all([
-          axios.get('/api/events'),
-          axios.get('/api/categories')
-        ]);
-        // resto del código...
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
+  const fetchData = async () => {
+    try {
+      console.log('API URL:', axios.defaults.baseURL);
+      const [eventsResponse, categoriesResponse] = await Promise.all([
+        axios.get('/api/events'),
+        axios.get('/api/categories')
+      ]);
+      
+      // Agregar estas líneas que faltan:
+      setEvents(eventsResponse.data);
+      setCategories(categoriesResponse.data);
+      setLoading(false); // Esta es la línea clave
+      
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setLoading(false); // También aquí para manejar errores
+    }
+  };
 
     fetchData();
   }, []);

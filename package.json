@@ -23,15 +23,17 @@
     "concurrently": "^8.2.2"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "concurrently --kill-others --prefix \"[{name}]\" --names \"backend,frontend\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run start-backend\" \"npm run start-frontend\"",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "dev": "concurrently --kill-others --prefix \"[{name}]\" --names \"backend,frontend\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run start-backend\" \"npm run start-frontend\"",
-    "start-backend": "python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload",
+    "dev": "npm start",
+    "start-backend": "cd backend && python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload",
     "start-frontend": "react-scripts start",
-    "install-all": "npm install && pip install -r requirements.txt",
-    "test-api": "python test_api.py",
+    "frontend-only": "react-scripts start",
+    "backend-only": "npm run start-backend",
+    "install-all": "npm install && pip install -r backend/requirements.txt",
+    "test-backend": "python test-backend.py",
     "setup": "npm run install-all && echo Setup completed successfully!"
   },
   "eslintConfig": {

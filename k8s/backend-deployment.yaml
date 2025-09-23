@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ticketpardo-backend
+  name: backend
   namespace: ticketpardo
   labels:
-    app: ticketpardo-backend
+    app: backend
     component: api
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: ticketpardo-backend
+      app: backend
   template:
     metadata:
       labels:
-        app: ticketpardo-backend
+        app: backend
         component: api
     spec:
       containers:
@@ -34,8 +34,14 @@ spec:
         - name: CORS_ORIGINS
           valueFrom:
             configMapKeyRef:
-              name: ticketpardo-config
+              name: app-config
               key: CORS_ORIGINS
+              optional: true
+        - name: PUBLIC_IP
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: PUBLIC_IP
               optional: true
         resources:
           requests:

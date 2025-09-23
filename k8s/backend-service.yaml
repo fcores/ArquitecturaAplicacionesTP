@@ -1,17 +1,18 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: ticketpardo-backend-service
+  name: backend-service
   namespace: ticketpardo
   labels:
-    app: ticketpardo-backend
+    app: backend
     component: api
 spec:
   selector:
-    app: ticketpardo-backend
+    app: backend
   ports:
   - name: http
     port: 8000
     targetPort: 8000
+    nodePort: 30000
     protocol: TCP
-  type: ClusterIP
+  type: NodePort

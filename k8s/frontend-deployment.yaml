@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ticketpardo-frontend
+  name: frontend
   namespace: ticketpardo
   labels:
-    app: ticketpardo-frontend
+    app: frontend
     component: web
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: ticketpardo-frontend
+      app: frontend
   template:
     metadata:
       labels:
-        app: ticketpardo-frontend
+        app: frontend
         component: web
     spec:
       containers:

@@ -7,7 +7,7 @@ const AppContext = createContext(undefined);
 
 // Helper para normalizar el baseURL (sin barra final)
 function computeBaseURL() {
-  const raw = process.env.REACT_APP_API_URL || '/api';
+  const raw = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
   return String(raw).replace(/\/+$/, ''); // quita barras al final
 }
 

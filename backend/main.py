@@ -31,7 +31,7 @@ def get_cors_origins() -> List[str]:
     """
     Devuelve orígenes permitidos para CORS.
     - Usa CORS_ORIGINS si está definido (coma-separado o '*').
-    - Incluye defaults para local y NodePort del front.
+    - Incluye defaults para local, minikube y producción.
     """
     env_origins = os.getenv("CORS_ORIGINS", "")
     if env_origins.strip():
@@ -39,14 +39,28 @@ def get_cors_origins() -> List[str]:
             return ["*"]
         return list({o.strip() for o in env_origins.split(",") if o.strip()})
 
-    # Defaults seguros para pruebas locales/minikube
+    # Defaults para desarrollo y producción
     defaults = {
+        # Desarrollo local
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        # Minikube NodePort (puerto común 30080)
+        "http://localhost:30080",
+        "http://127.0.0.1:30080",
     }
 
-    # Si estás detrás de un NodePort (30080), podés sumar el IP del minikube/manual:
-    # defaults.add(f"http://{minikube_ip}:30080")
+    # Agregar IP pública si está definida
+    public_ip = os.getenv("PUBLIC_IP")
+    if public_ip:
+        defaults.add(f"http://{public_ip}")
+        defaults.add(f"http://{public_ip}:30080")
+        defaults.add(f"https://{public_ip}")
+        defaults.add(f"https://{public_ip}:30080")
+    
+    # Para producción, permitir todos los orígenes si está configurado
+    if os.getenv("ENVIRONMENT") == "production" and not env_origins:
+        return ["*"]
+
     return list(defaults)
 
 app.add_middleware(

@@ -7,10 +7,20 @@ const AppContext = createContext(undefined);
 
 // Helper para normalizar el baseURL (sin barra final)
 function computeBaseURL() {
-  const raw = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
-  return String(raw).replace(/\/+$/, ''); // quita barras al final
-}
+  // 1) Tomá env en build-time (CRA) o usá /api por defecto (reverse proxy)
+  let url = (process.env.REACT_APP_API_URL || '/api').replace(/\/+$/, '');
 
+  // 2) Guard de seguridad: si por algún motivo quedó 'localhost' en prod, fuerza /api
+  if (
+    /^https?:\/\/localhost(?::\d+)?/i.test(url) &&
+    typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost'
+  ) {
+    url = '/api';
+  }
+
+  return url;
+}
 // Axios instance
 const api = axios.create({
   baseURL: computeBaseURL(), // p.ej. '/api'

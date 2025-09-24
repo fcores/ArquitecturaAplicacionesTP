@@ -1,3 +1,6 @@
+# ----------------------------- 
+# Deployment para Frontend
+# ----------------------------- 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,36 +19,33 @@ spec:
     spec:
       containers:
         - name: react
-          image: ezequielfina/ticketpardo-frontend:kube
+          image: ezequielfina/ticketpardo-frontend:prod  # ✅ Nueva imagen
           imagePullPolicy: Always
           ports:
-            - containerPort: 3000
-          # Health checks con tiempos largos para React
+            - containerPort: 80  # ✅ Nginx usa puerto 80
+          # Health checks para Nginx
           livenessProbe:
             httpGet:
               path: /health
-              port: 3000
-            initialDelaySeconds: 60
-            periodSeconds: 15
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /health
-              port: 3000
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          # Recursos suficientes para React
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
           resources:
             requests:
-              cpu: 100m
-              memory: 300Mi    # 300MB request
+              cpu: 50m
+              memory: 64Mi   # ✅ Mucho menos memoria
             limits:
-              cpu: 500m
-              memory: 600Mi    # 600MB limit
+              cpu: 200m
+              memory: 128Mi  # ✅ Límites bajos
           env:
             - name: ENV
               value: "production"
-            - name: REACT_APP_API_URL
-              value: "http://3.20.238.113:8000"
 
 ---
 # ----------------------------- 
@@ -63,10 +63,10 @@ spec:
     app: react
   ports:
     - protocol: TCP
-      port: 3000
-      targetPort: 3000
+      port: 80        # ✅ Cambiar a 80
+      targetPort: 80  # ✅ Cambiar a 80
       name: http
-  sessionAffinity: None  # Sin afinidad de sesión
+  sessionAffinity: None
 
 ---
 # ----------------------------- 
@@ -85,8 +85,8 @@ spec:
   ports:
     - name: http
       protocol: TCP
-      port: 3000
-      targetPort: 3000
+      port: 80        # ✅ Cambiar a 80
+      targetPort: 80  # ✅ Cambiar a 80
       nodePort: 30080
   sessionAffinity: None
 
@@ -107,7 +107,6 @@ metadata:
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
-    # Load balancing mejorado
     nginx.ingress.kubernetes.io/load-balance: "round_robin"
 spec:
   rules:
@@ -119,7 +118,7 @@ spec:
               service:
                 name: ticketpardo-frontend-service
                 port:
-                  number: 3000
+                  number: 80  # ✅ Cambiar a 80
 
 ---
 # ----------------------------- 
@@ -137,29 +136,29 @@ spec:
     kind: Deployment
     name: ticketpardo-frontend
   minReplicas: 2
-  maxReplicas: 3  # Solo 3 pods máximo por memoria
+  maxReplicas: 5  # ✅ Más pods porque usa menos memoria
   metrics:
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 60
+          averageUtilization: 50
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
-          averageUtilization: 70
+          averageUtilization: 60
   behavior:
     scaleUp:
-      stabilizationWindowSeconds: 60  # Más lento para no saturar
+      stabilizationWindowSeconds: 30
       policies:
         - type: Percent
           value: 50
-          periodSeconds: 60
+          periodSeconds: 30
     scaleDown:
-      stabilizationWindowSeconds: 120
+      stabilizationWindowSeconds: 60
       policies:
         - type: Percent
           value: 25

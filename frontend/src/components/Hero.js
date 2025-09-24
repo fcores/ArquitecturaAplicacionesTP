@@ -289,16 +289,16 @@ const Hero = () => {
           >
             <EventPreview>
               <EventImage
-                src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=250&fit=crop"
+                src="http://3.20.238.113:8000/assets/trib2.png"
                 alt="Estadio de Fútbol"
                 onError={(e) => {
                   e.target.src = '/images/placeholder.svg';
                 }}
               />
               <EventInfo>
-                <h3>Messi vs. Selección Mundial</h3>
+                <h3>Argentina vs Venezuela</h3>
                 <p>15 de Diciembre • Estadio Monumental</p>
-                <span className="price">Desde $150</span>
+                <span className="price">Desde $90.000</span>
               </EventInfo>
             </EventPreview>
           </FloatingCard>

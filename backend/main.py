@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
+from fastapi.staticfiles import StaticFiles
 import qrcode
 import io
 import base64
@@ -14,6 +15,8 @@ app = FastAPI(
     description="API para el sistema de entradas del último partido de Messi",
     version="1.0.0"
 )
+
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
 # Configuración CORS
 app.add_middleware(
@@ -64,10 +67,10 @@ events_data = [
         "title": "Último Partido de Messi",
         "date": "15 de Diciembre, 2024",
         "location": "Estadio Monumental",
-        "price": 250.0,
+        "price": 90000.0,
         "category": "Platea Preferencial",
         "status": "Agotándose",
-        "image_url": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=250&fit=crop",
+        "image_url": "/assets/trib1.jpg",
         "description": "El adiós del GOAT del fútbol. No te pierdas este momento histórico."
     },
     {
@@ -75,10 +78,10 @@ events_data = [
         "title": "Último Partido de Messi",
         "date": "15 de Diciembre, 2024",
         "location": "Estadio Monumental",
-        "price": 180.0,
+        "price": 260000.0,
         "category": "Platea Media",
         "status": "Disponible",
-        "image_url": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=250&fit=crop",
+        "image_url": "/assets/trib2.png",
         "description": "Excelente vista panorámica del campo."
     },
     {
@@ -86,10 +89,10 @@ events_data = [
         "title": "Último Partido de Messi",
         "date": "15 de Diciembre, 2024",
         "location": "Estadio Monumental",
-        "price": 120.0,
+        "price": 320000.0,
         "category": "Platea Alta",
         "status": "Próximamente",
-        "image_url": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=250&fit=crop",
+        "image_url": "/assets/trib3.jpg",
         "description": "Vista completa del estadio."
     }
 ]

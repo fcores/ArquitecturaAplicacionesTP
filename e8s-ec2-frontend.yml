@@ -1,4 +1,6 @@
 # ----------------------------- 
+# Deployment Frontend
+# ----------------------------- 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,35 +23,40 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
-          # Health checks para mejor manejo en la nube
+          # Health checks mejorados
           livenessProbe:
             httpGet:
-              path: /health  
+              path: /health
               port: 3000
-            initialDelaySeconds: 60  # Aumentado para dar más tiempo
+            initialDelaySeconds: 45
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /health
               port: 3000
-            initialDelaySeconds: 30  # Aumentado
+            initialDelaySeconds: 15
             periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # Recursos ajustados
           resources:
             requests:
-              cpu: 100m
-              memory: 128Mi
+              cpu: 50m      # Reducido para facilitar scaling
+              memory: 64Mi
             limits:
-              cpu: 250m
-              memory: 256Mi
+              cpu: 150m     # Límite más bajo
+              memory: 128Mi
           env:
             - name: ENV
               value: "production"
             - name: REACT_APP_API_URL
-              value: "http://3.20.238.113:8000"
+              value: "http://3.20.238.113:8000"  # URL del backend
 
 ---
 # ----------------------------- 
-# Service ClusterIP (para uso interno)
+# Service ClusterIP para Frontend
 # ----------------------------- 
 apiVersion: v1
 kind: Service
@@ -66,10 +73,11 @@ spec:
       port: 3000
       targetPort: 3000
       name: http
+  sessionAffinity: None  # Sin afinidad de sesión
 
 ---
 # ----------------------------- 
-# Service NodePort (acceso externo para frontend)
+# NodePort Service para Frontend
 # ----------------------------- 
 apiVersion: v1
 kind: Service
@@ -80,13 +88,14 @@ metadata:
 spec:
   type: NodePort
   selector:
-    app: react  # Corregido: debe apuntar al frontend
+    app: react
   ports:
     - name: http
       protocol: TCP
       port: 3000
       targetPort: 3000
-      nodePort: 30080  # Acceso: http://TU-IP-EC2:30080
+      nodePort: 30080
+  sessionAffinity: None
 
 ---
 # ----------------------------- 
@@ -105,6 +114,8 @@ metadata:
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+    # Load balancing mejorado
+    nginx.ingress.kubernetes.io/load-balance: "round_robin"
 spec:
   rules:
     - http:
@@ -113,14 +124,14 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: ticketpardo-frontend-service  # Corregido
+                name: ticketpardo-frontend-service
                 port:
                   number: 3000
 
 ---
-# -----------------------------
-# Horizontal Pod Autoscaler para Frontend
-# -----------------------------
+# ----------------------------- 
+# HPA más agresivo para Frontend
+# ----------------------------- 
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -133,30 +144,48 @@ spec:
     kind: Deployment
     name: ticketpardo-frontend
   minReplicas: 2
-  maxReplicas: 5
+  maxReplicas: 6
   metrics:
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 30   # Escala con poca carga
+          averageUtilization: 25  # Más bajo para facilitar scaling
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
-          averageUtilization: 40
+          averageUtilization: 35
   behavior:
     scaleUp:
-      stabilizationWindowSeconds: 0   # reacciona enseguida
+      stabilizationWindowSeconds: 0
       policies:
         - type: Percent
           value: 100
           periodSeconds: 15
+        - type: Pods
+          value: 2
+          periodSeconds: 15
+      selectPolicy: Max
     scaleDown:
-      stabilizationWindowSeconds: 60  # baja más rápido
+      stabilizationWindowSeconds: 60
       policies:
         - type: Percent
-          value: 50
-          periodSeconds: 30
+          value: 25
+          periodSeconds: 60
+
+---
+# ----------------------------- 
+# PodDisruptionBudget
+# ----------------------------- 
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ticketpardo-frontend-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: react

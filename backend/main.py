@@ -70,7 +70,7 @@ events_data = [
         "price": 90000.0,
         "category": "Platea Preferencial",
         "status": "Agotándose",
-        "image_url": "http://3.20.238.113:8000/assets/trib1.jpg",
+        "image_url": "http://3.20.238.113:8000/assets/trib1.png",
         "description": "El adiós del GOAT del fútbol. No te pierdas este momento histórico."
     },
     {
@@ -92,7 +92,7 @@ events_data = [
         "price": 320000.0,
         "category": "Platea Alta",
         "status": "Próximamente",
-        "image_url": "http://3.20.238.113:8000/assets/trib3.jpg",
+        "image_url": "http://3.20.238.113:8000/assets/trib3.png",
         "description": "Vista completa del estadio."
     }
 ]

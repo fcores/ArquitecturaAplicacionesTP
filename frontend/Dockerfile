@@ -1,10 +1,9 @@
-# Usar imagen oficial de Node.js
-FROM node:18-alpine
+# Etapa de build
+FROM node:18-alpine as build
 
-# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar package.json y package-lock.json (si existe)
+# Copiar package.json y package-lock.json
 COPY package*.json ./
 
 # Instalar dependencias
@@ -13,8 +12,20 @@ RUN npm install
 # Copiar código fuente
 COPY . .
 
-# Exponer puerto 3000
-EXPOSE 3000
+# Crear build de producción
+RUN npm run build
 
-# Comando para ejecutar la aplicación en modo desarrollo
-CMD ["npm", "start"]
+# Etapa de producción con Nginx
+FROM nginx:alpine
+
+# Copiar build al directorio de Nginx
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Copiar configuración personalizada de Nginx (opcional)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Exponer puerto 80
+EXPOSE 80
+
+# Comando por defecto (Nginx se ejecuta automáticamente)
+CMD ["nginx", "-g", "daemon off;"]

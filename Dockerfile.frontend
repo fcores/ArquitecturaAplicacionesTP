@@ -1,38 +1,42 @@
-# --------- ETAPA 1: Build del Frontend ----------
+# ---------- Stage 1: Build ----------
     FROM node:18-alpine AS build
     WORKDIR /app
     
-    # Instalar deps (usa npm ci si hay lockfile, si no npm install)
+    # Dependencias
     COPY package*.json ./
-    RUN npm ci || npm install
+    # usa ci si hay lockfile; cae a install si no
+    RUN npm ci --no-audit --no-fund || npm install --no-audit --no-fund
     
-    # Copiar código y compilar
+    # Código
     COPY . .
+    
+    # Compilado del front (React/Vite)
+    # Asegúrate de tener .env.production si lo necesitas (REACT_APP_API_URL=/api)
     RUN npm run build
     
-    # Normalizar la salida del build en /app/webroot
-    # - Si existe /app/dist (Vite) => usarlo
-    # - Si existe /app/build (CRA) => usarlo
-    RUN mkdir -p /app/webroot \
-     && if [ -d "/app/dist" ]; then cp -r /app/dist/* /app/webroot/; \
-        elif [ -d "/app/build" ]; then cp -r /app/build/* /app/webroot/; \
-        else echo "No se encontró ni dist/ ni build/ tras npm run build"; exit 1; fi
+    # ---------- Stage 2: Runtime (Nginx no-root) ----------
+    FROM nginx:1.25-alpine AS runtime
     
-    
-    # --------- ETAPA 2: Nginx que sirve el Front y proxy a la API ----------
-    FROM nginx:1.25-alpine
-    
-    # Config de Nginx (asegurate de tener default.conf junto al Dockerfile)
+    # Configuración de Nginx para SPA + proxy (ajusta tu default.conf)
+    # Debe tener: listen 8080;  y (recomendado)  'pid /tmp/nginx.pid;'
     COPY default.conf /etc/nginx/conf.d/default.conf
     
-    # Copiar el build ya normalizado
-    COPY --from=build /app/webroot /usr/share/nginx/html
+    # Asegura que Nginx escriba el pid en /tmp (por si tu default.conf no lo define)
+    RUN printf 'pid /tmp/nginx.pid;\n' > /etc/nginx/conf.d/zz-override-pid.conf
     
-    # Ajustes (no recreamos usuario/grupo; ya existen en la imagen)
-    # Opcionalmente garantiza permisos de escritura donde Nginx los usa:
-    RUN chown -R nginx:nginx /usr/share/nginx/html /var/cache/nginx /var/run || true
+    # Archivos estáticos: soporta dist/ (Vite) o build/ (CRA)
+    # Copiamos ambas rutas; la que exista pisará a la otra
+    COPY --from=build /app/dist/  /usr/share/nginx/html/
+    COPY --from=build /app/build/ /usr/share/nginx/html/
     
-    EXPOSE 80
+    # Directorios que Nginx necesita en runtime
+    RUN mkdir -p /var/cache/nginx /var/run \
+      && chown -R nginx:nginx \
+           /var/cache/nginx /var/run \
+           /usr/share/nginx/html /etc/nginx/conf.d
+    
+    # Ejecutar como usuario no-root
     USER nginx
-    STOPSIGNAL SIGQUIT
-    CMD ["nginx","-g","daemon off;"]
+    
+    EXPOSE 8080
+    CMD ["nginx", "-g", "daemon off;"]

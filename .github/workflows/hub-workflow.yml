@@ -104,7 +104,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: ./frontend
-        file: ./frontend/Dockerfile.prod  # Nuevo Dockerfile de producción
+        file: ./frontend/Dockerfile
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ env.FRONTEND_IMAGE }}:prod
         cache-from: type=gha,scope=frontend-prod

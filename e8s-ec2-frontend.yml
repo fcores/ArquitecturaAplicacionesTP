@@ -1,5 +1,5 @@
 # ----------------------------- 
-# Deployment Frontend
+# Deployment Frontend - Memoria Corregida
 # ----------------------------- 
 apiVersion: apps/v1
 kind: Deployment
@@ -23,114 +23,40 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
-          # Health checks mejorados
+          # Health checks con más tiempo
           livenessProbe:
             httpGet:
               path: /health
               port: 3000
-            initialDelaySeconds: 45
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
+            initialDelaySeconds: 60  # Más tiempo para arrancar
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 5
           readinessProbe:
             httpGet:
               path: /health
               port: 3000
-            initialDelaySeconds: 15
-            periodSeconds: 5
-            timeoutSeconds: 3
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
             failureThreshold: 3
-          # Recursos ajustados
+          # ✅ RECURSOS AUMENTADOS DRAMÁTICAMENTE
           resources:
             requests:
-              cpu: 50m      # Reducido para facilitar scaling
-              memory: 64Mi
+              cpu: 100m
+              memory: 256Mi    # ✅ Cuadruplicado
             limits:
-              cpu: 150m     # Límite más bajo
-              memory: 128Mi
+              cpu: 500m        # ✅ Más CPU también
+              memory: 512Mi    # ✅ Cuadruplicado el límite
           env:
             - name: ENV
               value: "production"
             - name: REACT_APP_API_URL
-              value: "http://3.20.238.113:8000"  # URL del backend
+              value: "http://3.20.238.113:8000"
 
 ---
 # ----------------------------- 
-# Service ClusterIP para Frontend
-# ----------------------------- 
-apiVersion: v1
-kind: Service
-metadata:
-  name: ticketpardo-frontend-service
-  labels:
-    app: react
-spec:
-  type: ClusterIP
-  selector:
-    app: react
-  ports:
-    - protocol: TCP
-      port: 3000
-      targetPort: 3000
-      name: http
-  sessionAffinity: None  # Sin afinidad de sesión
-
----
-# ----------------------------- 
-# NodePort Service para Frontend
-# ----------------------------- 
-apiVersion: v1
-kind: Service
-metadata:
-  name: ticketpardo-frontend-nodeport
-  labels:
-    app: react
-spec:
-  type: NodePort
-  selector:
-    app: react
-  ports:
-    - name: http
-      protocol: TCP
-      port: 3000
-      targetPort: 3000
-      nodePort: 30080
-  sessionAffinity: None
-
----
-# ----------------------------- 
-# Ingress para Frontend
-# ----------------------------- 
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: ticketpardo-frontend-ingress
-  labels:
-    app: react
-  annotations:
-    kubernetes.io/ingress.class: "nginx"
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
-    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
-    # Load balancing mejorado
-    nginx.ingress.kubernetes.io/load-balance: "round_robin"
-spec:
-  rules:
-    - http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: ticketpardo-frontend-service
-                port:
-                  number: 3000
-
----
-# ----------------------------- 
-# HPA más agresivo para Frontend
+# HPA Frontend Ajustado
 # ----------------------------- 
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -144,48 +70,30 @@ spec:
     kind: Deployment
     name: ticketpardo-frontend
   minReplicas: 2
-  maxReplicas: 6
+  maxReplicas: 4  # ✅ Reducido porque cada pod usa más memoria
   metrics:
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 25  # Más bajo para facilitar scaling
+          averageUtilization: 50  # ✅ Más alto porque tenemos más CPU
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
-          averageUtilization: 35
+          averageUtilization: 60  # ✅ Más alto porque tenemos más memoria
   behavior:
     scaleUp:
-      stabilizationWindowSeconds: 0
+      stabilizationWindowSeconds: 30  # ✅ Más lento para evitar OOM
       policies:
         - type: Percent
-          value: 100
-          periodSeconds: 15
-        - type: Pods
-          value: 2
-          periodSeconds: 15
-      selectPolicy: Max
+          value: 50
+          periodSeconds: 30
     scaleDown:
-      stabilizationWindowSeconds: 60
+      stabilizationWindowSeconds: 120
       policies:
         - type: Percent
           value: 25
           periodSeconds: 60
-
----
-# ----------------------------- 
-# PodDisruptionBudget
-# ----------------------------- 
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: ticketpardo-frontend-pdb
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels:
-      app: react

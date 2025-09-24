@@ -56,7 +56,7 @@ jobs:
         cache-from: type=gha,scope=backend
         cache-to: type=gha,mode=max,scope=backend
 
-  build-and-push-frontend:
+  build-and-push-frontend-dev:
     runs-on: ubuntu-latest
     
     steps:
@@ -73,34 +73,18 @@ jobs:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
         
-    - name: Extract metadata for Frontend
-      id: meta-frontend
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.FRONTEND_IMAGE }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=raw,value=latest,enable={{is_default_branch}}
-          
-    - name: Build and push Frontend Docker image
+    - name: Build and push Frontend DEV image (existing)
       uses: docker/build-push-action@v5
       with:
         context: ./frontend
-        file: ./frontend/Dockerfile
+        file: ./frontend/Dockerfile  # Dockerfile existente (development)
         push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta-frontend.outputs.tags }}
-        labels: ${{ steps.meta-frontend.outputs.labels }}
-        cache-from: type=gha,scope=frontend
-        cache-to: type=gha,mode=max,scope=frontend
+        tags: ${{ env.FRONTEND_IMAGE }}:kube
+        cache-from: type=gha,scope=frontend-dev
+        cache-to: type=gha,mode=max,scope=frontend-dev
 
-  # Job opcional: Build y test con docker-compose
-  test-docker-compose:
+  build-and-push-frontend-prod:
     runs-on: ubuntu-latest
-    needs: [build-and-push-backend, build-and-push-frontend]
-    if: github.event_name == 'pull_request'
     
     steps:
     - name: Checkout code
@@ -109,20 +93,50 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
       
-    - name: Build with docker-compose
-      run: |
-        docker-compose build
+    - name: Log in to Docker Hub
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
         
-    - name: Test containers
+    - name: Build and push Frontend PROD image (nginx)
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        file: ./frontend/Dockerfile.prod  # Nuevo Dockerfile de producción
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ env.FRONTEND_IMAGE }}:prod
+        cache-from: type=gha,scope=frontend-prod
+        cache-to: type=gha,mode=max,scope=frontend-prod
+
+  # Job opcional: Test con ambas imágenes
+  test-images:
+    runs-on: ubuntu-latest
+    needs: [build-and-push-backend, build-and-push-frontend-dev, build-and-push-frontend-prod]
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Test backend image
       run: |
-        docker-compose up -d
+        docker run -d -p 8000:8000 --name backend-test ${{ env.BACKEND_IMAGE }}:kube
+        sleep 15
+        curl -f http://localhost:8000/health || exit 1
+        docker stop backend-test
+        
+    - name: Test frontend DEV image
+      run: |
+        docker run -d -p 3000:3000 --name frontend-dev-test ${{ env.FRONTEND_IMAGE }}:kube
         sleep 30
-        
-        # Test backend
-        curl -f http://localhost:8000/ || exit 1
-        
-        # Test frontend
         curl -f http://localhost:3000/ || exit 1
+        docker stop frontend-dev-test
         
-    - name: Stop containers
-      run: docker-compose down
+    - name: Test frontend PROD image
+      run: |
+        docker run -d -p 80:80 --name frontend-prod-test ${{ env.FRONTEND_IMAGE }}:prod
+        sleep 10
+        curl -f http://localhost:80/health || exit 1
+        docker stop frontend-prod-test

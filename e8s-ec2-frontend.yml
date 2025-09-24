@@ -20,31 +20,27 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
-          # Health checks con más tiempo
+          # Health checks con tiempos largos para React
           livenessProbe:
             httpGet:
               path: /health
               port: 3000
-            initialDelaySeconds: 60  # Más tiempo para arrancar
+            initialDelaySeconds: 60
             periodSeconds: 15
-            timeoutSeconds: 10
-            failureThreshold: 5
           readinessProbe:
             httpGet:
               path: /health
               port: 3000
             initialDelaySeconds: 30
             periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
-          # ✅ RECURSOS AUMENTADOS DRAMÁTICAMENTE
+          # Recursos suficientes para React
           resources:
             requests:
               cpu: 100m
-              memory: 256Mi    # ✅ Cuadruplicado
+              memory: 300Mi    # 300MB request
             limits:
-              cpu: 500m        # ✅ Más CPU también
-              memory: 512Mi    # ✅ Cuadruplicado el límite
+              cpu: 500m
+              memory: 600Mi    # 600MB limit
           env:
             - name: ENV
               value: "production"
@@ -141,27 +137,27 @@ spec:
     kind: Deployment
     name: ticketpardo-frontend
   minReplicas: 2
-  maxReplicas: 4  # ✅ Reducido porque cada pod usa más memoria
+  maxReplicas: 3  # Solo 3 pods máximo por memoria
   metrics:
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 50  # ✅ Más alto porque tenemos más CPU
+          averageUtilization: 60
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
-          averageUtilization: 60  # ✅ Más alto porque tenemos más memoria
+          averageUtilization: 70
   behavior:
     scaleUp:
-      stabilizationWindowSeconds: 30  # ✅ Más lento para evitar OOM
+      stabilizationWindowSeconds: 60  # Más lento para no saturar
       policies:
         - type: Percent
           value: 50
-          periodSeconds: 30
+          periodSeconds: 60
     scaleDown:
       stabilizationWindowSeconds: 120
       policies:

@@ -1,6 +1,3 @@
-# ----------------------------- 
-# Deployment Frontend - Memoria Corregida
-# ----------------------------- 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -56,7 +53,81 @@ spec:
 
 ---
 # ----------------------------- 
-# HPA Frontend Ajustado
+# Service ClusterIP para Frontend
+# ----------------------------- 
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticketpardo-frontend-service
+  labels:
+    app: react
+spec:
+  type: ClusterIP
+  selector:
+    app: react
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+      name: http
+  sessionAffinity: None  # Sin afinidad de sesión
+
+---
+# ----------------------------- 
+# NodePort Service para Frontend
+# ----------------------------- 
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticketpardo-frontend-nodeport
+  labels:
+    app: react
+spec:
+  type: NodePort
+  selector:
+    app: react
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3000
+      targetPort: 3000
+      nodePort: 30080
+  sessionAffinity: None
+
+---
+# ----------------------------- 
+# Ingress para Frontend
+# ----------------------------- 
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ticketpardo-frontend-ingress
+  labels:
+    app: react
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+    # Load balancing mejorado
+    nginx.ingress.kubernetes.io/load-balance: "round_robin"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ticketpardo-frontend-service
+                port:
+                  number: 3000
+
+---
+# ----------------------------- 
+# HPA para Frontend
 # ----------------------------- 
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -97,3 +168,17 @@ spec:
         - type: Percent
           value: 25
           periodSeconds: 60
+
+---
+# ----------------------------- 
+# PodDisruptionBudget
+# ----------------------------- 
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ticketpardo-frontend-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: react
